@@ -1,0 +1,48 @@
+version: "3.8"
+services:
+  zookeeper1:
+    image: confluentinc/cp-zookeeper:${CP_TAG}
+    hostname: zookeeper1
+    container_name: zookeeper1
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  broker1:
+    image: confluentinc/cp-server:${CP_TAG}
+    hostname: broker1
+    container_name: broker1
+    restart: always
+    ports:
+      - "9091:9091"
+      - "9093:9093"
+    volumes:
+      - ./security:/etc/kafka/secrets/
+      - ./client:/tmp/producer/
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper1:2181'
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: BROKER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,SSL:SSL
+      KAFKA_LISTENERS: PLAINTEXT://:9091,SSL://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker1:9091,SSL://broker1:9093
+      # KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka.server.keystore.jks
+      # KAFKA_SSL_KEY_PASSWORD: confluent
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: broker_sslkey_creds
+      KAFKA_SSL_KEY_CREDENTIALS: broker_sslkey_creds
+      KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.server.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: broker_sslkey_creds
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      # KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_CONTROL_CENTER_INTERNAL_TOPICS_REPLICATION: 1
+      CONFLUENT_CONTROL_CENTER_COMMAND_TOPIC_REPLICATION: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_METRICS_ENABLE: 'false'
+      KAFKA_CONFLUENT_REPORTERS_TELEMETRY_AUTO_ENABLE: 'false'
+      KAFKA_CONFLUENT_BALANCER_ENABLE: 'false'

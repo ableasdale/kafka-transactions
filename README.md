@@ -14,3 +14,8 @@ Start both clusters using the provided `docker-compose.yaml` file:
 docker-compose up
 ```
 
+## Get Offsets
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.GetOffsetShell --bootstrap-server http://localhost:9091 --topic transaction-topic
+```

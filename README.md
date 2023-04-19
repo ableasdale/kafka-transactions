@@ -14,9 +14,9 @@ Start both clusters using the provided `docker-compose.yaml` file:
 docker-compose up
 ```
 
-## Run the transaction
+## Run the initial transaction
 
-From the project root directory, run:
+From the project root directory, use the gradle `run` Task; this will compile and run the `TransactionalProducer` class:
 
 ```bash
 ./gradlew run
@@ -74,7 +74,7 @@ Given the fact that we're using transactions, we can use the `DumpLogSegments` t
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
 ```
 
-You will see:
+You will see a `COMMIT` endTxnMarker when you dump the segment file:
 
 ```bash
 Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
@@ -115,7 +115,7 @@ baseOffset: 5 lastOffset: 5 count: 1 baseSequence: -1 lastSequence: -1 producerI
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction4-topic-0/00000000000000000000.log
 ```
 
-We will see:
+We will see that a transaction has started `isTransactional: true` although at this time, there are no markers listed:
 
 ```bash
  docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction4-topic-0/00000000000000000000.log
@@ -130,6 +130,9 @@ baseOffset: 0 lastOffset: 4 count: 5 baseSequence: 0 lastSequence: 4 producerId:
 ```
 
 ## What if we roll back our transaction?
+
+We see what looks like a truncated transaction; the original offsets are gone and offset 0 contains an `ABORT` endTxnMarker.
+
 ```bash
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
 Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
@@ -139,6 +142,8 @@ baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerI
 ```
 
 ## What if we then start a new (uncommitted) transaction after our aborted transaction?
+
+The `ABORT`ed transaction can be seen as expected and the new transaction (without any transaction markers at the point where `DumpLogSegments` is run):
 
 ```bash
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
@@ -155,6 +160,8 @@ baseOffset: 1 lastOffset: 5 count: 5 baseSequence: 0 lastSequence: 4 producerId:
 ```
 
 ## What if we abort that too?
+
+Perhaps unsurprisingly, we see the earlier `ABORT` transaction marker at offset 0, followed by the more recent `ABORT` as offset 6. 
 
 ```bash
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
@@ -173,6 +180,8 @@ baseOffset: 6 lastOffset: 6 count: 1 baseSequence: -1 lastSequence: -1 producerI
 ```
 
 ## And finally, what if we now properly commit?
+
+We see two `ABORT` markers at offsets 0 and 6 and a final `COMMIT` marker at offset 12:
 
 ```bash
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log

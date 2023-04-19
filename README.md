@@ -1,8 +1,8 @@
-# kafka-transactions
+# Understanding Transactions in Apache Kafka
 
 Testing Transaction processing in Confluent Platform / Apache Kafka
 
-## Creating the certificates and stores
+## Getting Started: Creating the certificates and stores
 
 - `cd` to `security` and run `create-certs.sh` from within the directory; this will create the root certificate and all the stores for both the server and the clients.
 
@@ -217,10 +217,6 @@ As you may expect, we can only read 5 messages back from the topic - despite the
 14:52:29.140 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 11 Value: 703534748 Thread Id: 1
 ```
 
-TODO - add `--offsets-decoder`
-
-docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments  --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log --transaction-log-decoder
-
 ## Transaction Log Decoder: Aborted Transactions 
 
 Starting with a clean Kafka Cluster, we're going to run `TransactionalProducerNoCommit` once and allow it to terminate.
@@ -259,8 +255,8 @@ Example output shows all the transaction state changes for the aborted (uncommit
 
 - Empty
 - Ongoing
-- PrepareAbort
-- CompleteAbort
+- **PrepareAbort**
+- **CompleteAbort**
 
 ```bash
 Dumping /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
@@ -315,11 +311,11 @@ If we look in the transaction state log (`__transaction_state`), we will see the
 
 - Empty
 - Ongoing
-- PrepareCommit
-- CompleteCommit
+- **PrepareCommit**
+- **CompleteCommit**
 
 ```bash
- docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --transaction-log-decoder --files /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --transaction-log-decoder --files /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
 Dumping /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
 Log starting offset: 0
 baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681915689751 size: 114 magic: 2 compresscodec: none crc: 1078311489 isvalid: true
@@ -331,3 +327,44 @@ baseOffset: 2 lastOffset: 2 count: 1 baseSequence: -1 lastSequence: -1 producerI
 baseOffset: 3 lastOffset: 3 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 400 CreateTime: 1681915696479 size: 114 magic: 2 compresscodec: none crc: 3834120000 isvalid: true
 | offset: 3 CreateTime: 1681915696479 keySize: 9 valueSize: 37 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-1 payload: producerId:0,producerEpoch:0,state=CompleteCommit,partitions=[],txnLastUpdateTimestamp=1681915696459,txnTimeoutMs=30000
 ```
+
+## The `--offsets-decoder` flag
+
+`DumpLogSegments` can also be used to show the status of the `__consumer_offsets` topic.
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --offsets-decoder --files /var/lib/kafka/data/__consumer_offsets-0/00000000000000000000.log
+```
+
+```bash
+Log starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681915693246 size: 345 magic: 2 compresscodec: none crc: 3899134566 isvalid: true
+| offset: 0 CreateTime: 1681915693246 keySize: 8 valueSize: 267 sequence: -1 headerKeys: [] key: group_metadata::group=cg-2 payload: {"protocolType":"consumer","protocol":"range","generationId":1,"assignment":"{consumer-cg-2-1-46b8a1b6-d9ae-4cf4-95cc-f1d47574467d=[transaction-topic-0]}"}
+baseOffset: 1 lastOffset: 1 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 345 CreateTime: 1681915693287 size: 108 magic: 2 compresscodec: none crc: 2444636469 isvalid: true
+| offset: 1 CreateTime: 1681915693287 keySize: 8 valueSize: 32 sequence: -1 headerKeys: [] key: group_metadata::group=cg-2 payload: {"protocolType":"consumer","protocol":null,"generationId":2,"assignment":"{}"}
+baseOffset: 2 lastOffset: 2 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 453 CreateTime: 1681915696406 size: 345 magic: 2 compresscodec: none crc: 3357742422 isvalid: true
+| offset: 2 CreateTime: 1681915696406 keySize: 8 valueSize: 267 sequence: -1 headerKeys: [] key: group_metadata::group=cg-1 payload: {"protocolType":"consumer","protocol":"range","generationId":1,"assignment":"{consumer-cg-1-2-69eaa6a2-90bb-4af3-9ea6-386acec9dddb=[transaction-topic-0]}"}
+baseOffset: 3 lastOffset: 3 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 798 CreateTime: 1681915696445 size: 108 magic: 2 compresscodec: none crc: 1008853431 isvalid: true
+| offset: 3 CreateTime: 1681915696445 keySize: 8 valueSize: 32 sequence: -1 headerKeys: [] key: group_metadata::group=cg-1 payload: {"protocolType":"consumer","protocol":null,"generationId":2,"assignment":"{}"}
+baseOffset: 4 lastOffset: 4 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 906 CreateTime: 1681915699860 size: 345 magic: 2 compresscodec: none crc: 477758739 isvalid: true
+| offset: 4 CreateTime: 1681915699860 keySize: 8 valueSize: 267 sequence: -1 headerKeys: [] key: group_metadata::group=cg-2 payload: {"protocolType":"consumer","protocol":"range","generationId":3,"assignment":"{consumer-cg-2-3-59b48aa8-7a0a-43b5-909a-1b17c0130dbd=[transaction-topic-0]}"}
+baseOffset: 5 lastOffset: 5 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 1251 CreateTime: 1681915700204 size: 108 magic: 2 compresscodec: none crc: 3611164429 isvalid: true
+| offset: 5 CreateTime: 1681915700204 keySize: 8 valueSize: 32 sequence: -1 headerKeys: [] key: group_metadata::group=cg-2 payload: {"protocolType":"consumer","protocol":null,"generationId":4,"assignment":"{}"}
+baseOffset: 6 lastOffset: 6 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 1359 CreateTime: 1681915703608 size: 345 magic: 2 compresscodec: none crc: 2213237450 isvalid: true
+| offset: 6 CreateTime: 1681915703608 keySize: 8 valueSize: 267 sequence: -1 headerKeys: [] key: group_metadata::group=cg-1 payload: {"protocolType":"consumer","protocol":"range","generationId":3,"assignment":"{consumer-cg-1-4-aec98065-5131-4fe1-ad4c-15a6d2f1fac1=[transaction-topic-0]}"}
+baseOffset: 7 lastOffset: 7 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 1704 CreateTime: 1681915703938 size: 108 magic: 2 compresscodec: none crc: 3592407746 isvalid: true
+| offset: 7 CreateTime: 1681915703938 keySize: 8 valueSize: 32 sequence: -1 headerKeys: [] key: group_metadata::group=cg-1 payload: {"protocolType":"consumer","protocol":null,"generationId":4,"assignment":"{}"}
+baseOffset: 8 lastOffset: 8 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 1812 CreateTime: 1681916269668 size: 76 magic: 2 compresscodec: none crc: 131287856 isvalid: true
+| offset: 8 CreateTime: 1681916269668 keySize: 8 valueSize: -1 sequence: -1 headerKeys: [] key: group_metadata::group=cg-1 payload: <DELETE>
+baseOffset: 9 lastOffset: 9 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 1888 CreateTime: 1681916269674 size: 76 magic: 2 compresscodec: none crc: 3014299162 isvalid: true
+| offset: 9 CreateTime: 1681916269674 keySize: 8 valueSize: -1 sequence: -1 headerKeys: [] key: group_metadata::group=cg-2 payload: <DELETE>
+```
+
+### TODOs
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --cluster-metadata-decoder --files /var/lib/kafka/data/_confluent-command-0/00000000000000000000.log
+```
+
+- --cluster-metadata-decoder
+ - _confluent-command-0

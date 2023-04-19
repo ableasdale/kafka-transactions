@@ -58,6 +58,14 @@ Example output:
 transaction-topic:0:6
 ```
 
+Note that `GetOffsetShell` will show you the real offset for a given topic; you'll see uncommitted transactions using this tool.  
+
+In our example (with our `TransactionalProducer`), if we create the `transactional.id` and send our 5 messages but don't commit, running `GetOffsetShell` shows the pre-committed transaction:
+
+```bash
+transaction-topic:0:5
+```
+
 ## Dump Log Data
 
 Given the fact that we're using transactions, we can use the `DumpLogSegments` tool to get far more insight into what is happening with respect to transactions:

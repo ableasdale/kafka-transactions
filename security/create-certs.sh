@@ -2,7 +2,7 @@ echo "Step 1: Root Certificate (CA)"
 openssl req -new -newkey rsa:4096 -days 365 -x509 -subj "/CN=Kafka-Security-CA" -keyout ca-key -out ca-cert -nodes
 
 echo "Step 2: Server Keystore"
-keytool -genkey -keystore kafka.server.keystore.jks -validity 365 -storepass confluent -keypass confluent -dname "CN=broker1" -storetype pkcs12 -keyalg RSA
+keytool -genkey -keystore kafka.server.keystore.jks -validity 365 -storepass confluent -keypass confluent -dname "CN=localhost" -storetype pkcs12 -keyalg RSA
 echo "Step 3: Adding Certificate to Keystore"
 keytool -keystore kafka.server.keystore.jks -certreq -file cert-file -storepass confluent -keypass confluent
 echo "Step 4: Sign Server Certificate"
@@ -20,7 +20,7 @@ EOF
 echo "Step 9: Client Truststore"
 keytool -keystore kafka.client.truststore.jks -alias CARoot -import -file ca-cert -storepass confluent -keypass confluent -noprompt -keyalg RSA
 echo "Step 10: Client Keystore"
-keytool -genkey -keystore kafka.client.keystore.jks -validity 365 -storepass confluent -keypass confluent -dname "CN=broker1" -alias my-local-pc -storetype pkcs12 -keyalg RSA
+keytool -genkey -keystore kafka.client.keystore.jks -validity 365 -storepass confluent -keypass confluent -dname "CN=localhost" -alias my-local-pc -storetype pkcs12 -keyalg RSA
 echo "Step 11: Client Cert signing request"
 keytool -keystore kafka.client.keystore.jks -certreq -file client-cert-sign-request -alias my-local-pc -storepass confluent -keypass confluent
 echo "Step 12: Sign Client Certificate"

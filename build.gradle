@@ -4,8 +4,9 @@ plugins {
 
 apply plugin: 'application'
 
-group 'kafka-transactions'
+mainClassName = 'io.confluent.csta.kafka.transactions.TransactionalProducer'
 
+group 'kafka-transactions'
 version '1.0-SNAPSHOT'
 
 repositories {

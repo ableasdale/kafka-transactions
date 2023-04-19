@@ -30,18 +30,18 @@ public class TransactionalProducer {
         props.put("auto.offset.reset", "latest");
         props.put("isolation.level","read_committed");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "cg-1");
-
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(props);
-        try {
-            consumer.subscribe(List.of( Config.TxnTopic));
+
+        try (consumer) {
+            consumer.subscribe(List.of(Config.TxnTopic));
             Set<TopicPartition> assignment;
             while ((assignment = consumer.assignment()).isEmpty()) {
                 consumer.poll(Duration.ofMillis(10));
             }
-            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info("Read Committed Isolation: "+ partition + ": " + offset));
+            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info("Read Committed Isolation: " + partition + ": " + offset));
         } finally {
-            LOG.info("********* CLOSING 'COMMITTED' CONSUMER *************");
             consumer.close();
+            LOG.debug("********* CLOSING 'COMMITTED' CONSUMER *************");
         }
     }
 
@@ -54,16 +54,16 @@ public class TransactionalProducer {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "cg-2");
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(props);
-        try {
-            consumer.subscribe(List.of( Config.TxnTopic));
+        try (consumer) {
+            consumer.subscribe(List.of(Config.TxnTopic));
             Set<TopicPartition> assignment;
             while ((assignment = consumer.assignment()).isEmpty()) {
                 consumer.poll(Duration.ofMillis(10));
             }
-            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info("Read Uncommitted Isolation: "+ partition + ": " + offset));
+            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info("Read Uncommitted Isolation: " + partition + ": " + offset));
         } finally {
-            LOG.info("********* CLOSING 'UNCOMMITTED' CONSUMER *************");
             consumer.close();
+            LOG.debug("********* CLOSING 'UNCOMMITTED' CONSUMER *************");
         }
     }
 
@@ -96,9 +96,10 @@ public class TransactionalProducer {
             getCommittedEndOffset();
             LOG.info("*** Committing Transaction ***");
             producer.commitTransaction();
+            LOG.info("*** Committed Transaction ***");
             getUncomittedCommittedEndOffset();
             getCommittedEndOffset();
-            LOG.info("*** Committed Transaction ***");
+
         } catch (ProducerFencedException | OutOfOrderSequenceException | AuthorizationException e) {
             // DLQ?
             LOG.error(e.toString());

@@ -218,3 +218,116 @@ As you may expect, we can only read 5 messages back from the topic - despite the
 ```
 
 TODO - add `--offsets-decoder`
+
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments  --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log --transaction-log-decoder
+
+## Transaction Log Decoder: Aborted Transactions 
+
+Starting with a clean Kafka Cluster, we're going to run `TransactionalProducerNoCommit` once and allow it to terminate.
+
+`DumpLogSegments` will show us what happened with the initial transaction and then show us an `ABORT` transaction marker:
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+```
+
+Shows us:
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 4 count: 5 baseSequence: 0 lastSequence: 4 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681914675249 size: 146 magic: 2 compresscodec: none crc: 2793359289 isvalid: true
+| offset: 0 CreateTime: 1681914675233 keySize: 1 valueSize: 9 sequence: 0 headerKeys: [] key: 0 payload: 634012095
+| offset: 1 CreateTime: 1681914675247 keySize: 1 valueSize: 9 sequence: 1 headerKeys: [] key: 1 payload: 113774401
+| offset: 2 CreateTime: 1681914675249 keySize: 1 valueSize: 9 sequence: 2 headerKeys: [] key: 2 payload: 872843037
+| offset: 3 CreateTime: 1681914675249 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 820325428
+| offset: 4 CreateTime: 1681914675249 keySize: 1 valueSize: 9 sequence: 4 headerKeys: [] key: 4 payload: 827499884
+baseOffset: 5 lastOffset: 5 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 146 CreateTime: 1681914675317 size: 78 magic: 2 compresscodec: none crc: 1108291434 isvalid: true
+| offset: 5 CreateTime: 1681914675317 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 0
+```
+
+We can also use `DumpLogSegments` with the `--transaction-log-decoder` flag.
+
+This will allow you to inspect the `__transaction_state-0` data (note that we've configured this to be a single partition in the docker-compose file to make it easy to see everything that happens).
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --transaction-log-decoder --files /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
+```
+
+Example output shows all the transaction state changes for the aborted (uncommitted) transaction:
+
+- Empty
+- Ongoing
+- PrepareAbort
+- CompleteAbort
+
+```bash
+Dumping /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681914675206 size: 114 magic: 2 compresscodec: none crc: 977448936 isvalid: true
+| offset: 0 CreateTime: 1681914675206 keySize: 9 valueSize: 37 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-2 payload: producerId:0,producerEpoch:0,state=Empty,partitions=[],txnLastUpdateTimestamp=1681914675203,txnTimeoutMs=30000
+baseOffset: 1 lastOffset: 1 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 114 CreateTime: 1681914675256 size: 143 magic: 2 compresscodec: none crc: 3609375034 isvalid: true
+| offset: 1 CreateTime: 1681914675256 keySize: 9 valueSize: 64 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-2 payload: producerId:0,producerEpoch:0,state=Ongoing,partitions=[transaction-topic-0],txnLastUpdateTimestamp=1681914675254,txnTimeoutMs=30000
+baseOffset: 2 lastOffset: 2 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 257 CreateTime: 1681914675300 size: 143 magic: 2 compresscodec: none crc: 3752133745 isvalid: true
+| offset: 2 CreateTime: 1681914675300 keySize: 9 valueSize: 64 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-2 payload: producerId:0,producerEpoch:0,state=PrepareAbort,partitions=[transaction-topic-0],txnLastUpdateTimestamp=1681914675298,txnTimeoutMs=30000
+baseOffset: 3 lastOffset: 3 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 400 CreateTime: 1681914675327 size: 114 magic: 2 compresscodec: none crc: 1474273819 isvalid: true
+| offset: 3 CreateTime: 1681914675327 keySize: 9 valueSize: 37 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-2 payload: producerId:0,producerEpoch:0,state=CompleteAbort,partitions=[],txnLastUpdateTimestamp=1681914675304,txnTimeoutMs=30000
+```
+
+## Transaction Log Decoder: Committed Transactions
+
+This time, we're going to prune and restart the containers and create a "Committed" transaction.
+
+We can run the `TransactionalProducer` class in order to see the committed transaction containing the five messages.
+
+Before the `commmit()` takes place, we see:
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 4 count: 5 baseSequence: 0 lastSequence: 4 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681915689947 size: 145 magic: 2 compresscodec: none crc: 519819857 isvalid: true
+| offset: 0 CreateTime: 1681915689932 keySize: 1 valueSize: 9 sequence: 0 headerKeys: [] key: 0 payload: 910991395
+| offset: 1 CreateTime: 1681915689946 keySize: 1 valueSize: 9 sequence: 1 headerKeys: [] key: 1 payload: 129184381
+| offset: 2 CreateTime: 1681915689947 keySize: 1 valueSize: 9 sequence: 2 headerKeys: [] key: 2 payload: 810192633
+| offset: 3 CreateTime: 1681915689947 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 755776337
+| offset: 4 CreateTime: 1681915689947 keySize: 1 valueSize: 8 sequence: 4 headerKeys: [] key: 4 payload: 45834038
+```
+
+After the `commit()` has completed successfully, we see our COMMIT marker:
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 4 count: 5 baseSequence: 0 lastSequence: 4 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681915689947 size: 145 magic: 2 compresscodec: none crc: 519819857 isvalid: true
+| offset: 0 CreateTime: 1681915689932 keySize: 1 valueSize: 9 sequence: 0 headerKeys: [] key: 0 payload: 910991395
+| offset: 1 CreateTime: 1681915689946 keySize: 1 valueSize: 9 sequence: 1 headerKeys: [] key: 1 payload: 129184381
+| offset: 2 CreateTime: 1681915689947 keySize: 1 valueSize: 9 sequence: 2 headerKeys: [] key: 2 payload: 810192633
+| offset: 3 CreateTime: 1681915689947 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 755776337
+| offset: 4 CreateTime: 1681915689947 keySize: 1 valueSize: 8 sequence: 4 headerKeys: [] key: 4 payload: 45834038
+baseOffset: 5 lastOffset: 5 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 145 CreateTime: 1681915696471 size: 78 magic: 2 compresscodec: none crc: 1065040205 isvalid: true
+| offset: 5 CreateTime: 1681915696471 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: COMMIT coordinatorEpoch: 0
+```
+
+If we look in the transaction state log (`__transaction_state`), we will see the following state changes are recorded:
+
+- Empty
+- Ongoing
+- PrepareCommit
+- CompleteCommit
+
+```bash
+ docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --transaction-log-decoder --files /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/__transaction_state-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681915689751 size: 114 magic: 2 compresscodec: none crc: 1078311489 isvalid: true
+| offset: 0 CreateTime: 1681915689751 keySize: 9 valueSize: 37 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-1 payload: producerId:0,producerEpoch:0,state=Empty,partitions=[],txnLastUpdateTimestamp=1681915689748,txnTimeoutMs=30000
+baseOffset: 1 lastOffset: 1 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 114 CreateTime: 1681915689954 size: 143 magic: 2 compresscodec: none crc: 2600796185 isvalid: true
+| offset: 1 CreateTime: 1681915689954 keySize: 9 valueSize: 64 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-1 payload: producerId:0,producerEpoch:0,state=Ongoing,partitions=[transaction-topic-0],txnLastUpdateTimestamp=1681915689953,txnTimeoutMs=30000
+baseOffset: 2 lastOffset: 2 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 257 CreateTime: 1681915696457 size: 143 magic: 2 compresscodec: none crc: 1599141227 isvalid: true
+| offset: 2 CreateTime: 1681915696457 keySize: 9 valueSize: 64 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-1 payload: producerId:0,producerEpoch:0,state=PrepareCommit,partitions=[transaction-topic-0],txnLastUpdateTimestamp=1681915696455,txnTimeoutMs=30000
+baseOffset: 3 lastOffset: 3 count: 1 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 400 CreateTime: 1681915696479 size: 114 magic: 2 compresscodec: none crc: 3834120000 isvalid: true
+| offset: 3 CreateTime: 1681915696479 keySize: 9 valueSize: 37 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=txn-1 payload: producerId:0,producerEpoch:0,state=CompleteCommit,partitions=[],txnLastUpdateTimestamp=1681915696459,txnTimeoutMs=30000
+```

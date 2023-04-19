@@ -316,7 +316,7 @@ baseOffset: 0 lastOffset: 4 count: 5 baseSequence: 0 lastSequence: 4 producerId:
 | offset: 4 CreateTime: 1681915689947 keySize: 1 valueSize: 8 sequence: 4 headerKeys: [] key: 4 payload: 45834038
 ```
 
-After the `commit()` has completed successfully, we see our COMMIT marker:
+After the `commit()` has completed successfully, we see our `COMMIT` marker:
 
 ```bash
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log

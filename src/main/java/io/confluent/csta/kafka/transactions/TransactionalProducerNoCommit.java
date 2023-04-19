@@ -57,7 +57,7 @@ public class TransactionalProducerNoCommit {
         }
         try {
             LOG.info("Sleeping");
-            Thread.sleep(99999999);
+           Thread.sleep(9999999);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

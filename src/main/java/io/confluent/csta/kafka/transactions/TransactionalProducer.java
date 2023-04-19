@@ -38,7 +38,7 @@ public class TransactionalProducer {
             while ((assignment = consumer.assignment()).isEmpty()) {
                 consumer.poll(Duration.ofMillis(10));
             }
-            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info("Read Committed Isolation: " + partition + ": " + offset));
+            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info(String.format("Read Committed Isolation Offset - partition: %s : offset %d", partition, offset)));
         } finally {
             consumer.close();
             LOG.debug("********* CLOSING 'COMMITTED' CONSUMER *************");
@@ -60,7 +60,7 @@ public class TransactionalProducer {
             while ((assignment = consumer.assignment()).isEmpty()) {
                 consumer.poll(Duration.ofMillis(10));
             }
-            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info("Read Uncommitted Isolation: " + partition + ": " + offset));
+            consumer.endOffsets(assignment).forEach((partition, offset) -> LOG.info(String.format("Read Uncommitted Isolation Offset - partition: %s : offset %d", partition, offset)));
         } finally {
             consumer.close();
             LOG.debug("********* CLOSING 'UNCOMMITTED' CONSUMER *************");
@@ -81,8 +81,7 @@ public class TransactionalProducer {
 
         try {
             producer.beginTransaction();
-            LOG.info("*** Begin Transaction ***");
-            LOG.info(String.format("*** transactional.id %s ***", props.get("transactional.id")));
+            LOG.info(String.format("*** Begin Transaction with transactional.id: %s ***", props.get(ProducerConfig.TRANSACTIONAL_ID_CONFIG)));
 
             for (int i = 0; i < 5; i++) {
                 double randomDouble = Math.random();
@@ -91,12 +90,11 @@ public class TransactionalProducer {
                         Integer.toString(randomNum)));
                 LOG.info(String.format("Sent %d:%d", i, randomNum));
             }
-            LOG.info("*** Before Committing Transaction ***");
+            LOG.info("*** Offsets Prior to producer.commitTransaction() ***");
             getUncomittedCommittedEndOffset();
             getCommittedEndOffset();
-            LOG.info("*** Committing Transaction ***");
             producer.commitTransaction();
-            LOG.info("*** Committed Transaction ***");
+            LOG.info(String.format("*** Committed Transaction: %s ***", props.get(ProducerConfig.TRANSACTIONAL_ID_CONFIG)));
             getUncomittedCommittedEndOffset();
             getCommittedEndOffset();
 

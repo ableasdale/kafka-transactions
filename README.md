@@ -28,31 +28,39 @@ The transaction will create five messages and then commit.  Before it commits, t
 
 You'll see something like this:
 
-```log
-13:25:29.865 [main] INFO  TransactionalProducer : *** Begin Transaction ***
-13:25:29.867 [main] INFO  TransactionalProducer : *** transactional.id txn-1 ***
-13:25:29.883 [kafka-producer-network-thread | producer-txn-1] WARN  NetworkClient : [Producer clientId=producer-txn-1, transactionalId=txn-1] Error while fetching metadata with correlation id 5 : {transactions-topic=LEADER_NOT_AVAILABLE}
-13:25:30.005 [main] INFO  TransactionalProducer : Sent 0:330763659
-13:25:30.006 [main] INFO  TransactionalProducer : Sent 1:712819371
-13:25:30.006 [main] INFO  TransactionalProducer : Sent 2:720251817
-13:25:30.006 [main] INFO  TransactionalProducer : Sent 3:831381575
-13:25:30.006 [main] INFO  TransactionalProducer : Sent 4:596779492
-13:25:30.006 [main] INFO  TransactionalProducer : *** Before Committing Transaction ***
-13:25:33.226 [main] INFO  TransactionalProducer : Read Uncommitted Isolation: transactions-topic-0: 5
-13:25:36.355 [main] INFO  TransactionalProducer : Read Committed Isolation: transactions-topic-0: 0
-13:25:36.362 [main] INFO  TransactionalProducer : *** Committing Transaction ***
-13:25:36.367 [main] INFO  TransactionalProducer : *** Committed Transaction ***
-13:25:39.785 [main] INFO  TransactionalProducer : Read Uncommitted Isolation: transactions-topic-0: 6
-13:25:43.199 [main] INFO  TransactionalProducer : Read Committed Isolation: transactions-topic-0: 6
+```logfile
+18:42:08.028 [main] INFO  TransactionalProducer : *** Begin Transaction with transactional.id: txn-1 ***
+18:42:08.054 [kafka-producer-network-thread | producer-txn-1] WARN  NetworkClient : [Producer clientId=producer-txn-1, transactionalId=txn-1] Error while fetching metadata with correlation id 7 : {transaction-topic=LEADER_NOT_AVAILABLE}
+18:42:08.179 [main] INFO  TransactionalProducer : Sent 0:445211695
+18:42:08.180 [main] INFO  TransactionalProducer : Sent 1:922730144
+18:42:08.180 [main] INFO  TransactionalProducer : Sent 2:706150981
+18:42:08.181 [main] INFO  TransactionalProducer : Sent 3:717629226
+18:42:08.181 [main] INFO  TransactionalProducer : Sent 4:737256779
+18:42:08.181 [main] INFO  TransactionalProducer : *** Offsets Prior to producer.commitTransaction() ***
+18:42:11.538 [main] INFO  TransactionalProducer : Read Uncommitted Isolation Offset - partition: transaction-topic-0 : offset 5
+18:42:14.999 [main] INFO  TransactionalProducer : Read Committed Isolation Offset - partition: transaction-topic-0 : offset 0
+18:42:15.017 [main] INFO  TransactionalProducer : *** Committed Transaction: txn-1 ***
+18:42:18.146 [main] INFO  TransactionalProducer : Read Uncommitted Isolation Offset - partition: transaction-topic-0 : offset 6
+18:42:21.577 [main] INFO  TransactionalProducer : Read Committed Isolation Offset - partition: transaction-topic-0 : offset 6
 ```
 
 ## Tool: GetOffsetShell
+
+This will give you a quick heads-up as to where the current offsets end for a given partition:
 
 ```bash
 docker-compose exec broker1 kafka-run-class kafka.tools.GetOffsetShell --bootstrap-server http://localhost:9091 --topic transaction-topic
 ```
 
+Example output: 
+
+```bash
+transaction-topic:0:6
+```
+
 ## Dump Log Data
+
+Given the fact that we're using transactions, we can use the `DumpLogSegments` tool to get far more insight into what is happening with respect to transactions:
 
 ```bash
 docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log

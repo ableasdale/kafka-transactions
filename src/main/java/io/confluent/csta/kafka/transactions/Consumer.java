@@ -17,23 +17,15 @@ public class Consumer {
 
     public static void main(String[] args) {
 
-        Properties props = new Properties();
-        props.put("bootstrap.servers", "https://localhost:9093");
-
-        // Consumer TLS Configuration
-        props.put("security.protocol", "SSL");
-        props.put("ssl.truststore.location", "security/kafka.client.truststore.jks");
-        props.put("ssl.truststore.password", "confluent");
-        props.put("ssl.keystore.location", "security/kafka.client.keystore.jks");
-        props.put("ssl.keystore.password", "confluent");
+        final Properties props = Config.getBaseConsumerProperties();
 
         props.put("enable.auto.commit", "false");
         props.put("auto.offset.reset", "earliest");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "one");
-        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("isolation.level","read_committed");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "cg-1");
+
         try (var consumer = new KafkaConsumer<String, String>(props)) {
-            consumer.subscribe(List.of("txn"));
+            consumer.subscribe(List.of( Config.TxnTopic));
             while (true) {
                 ConsumerRecords<?, ?> records = consumer.poll(Duration.ofSeconds(5));
                 for (ConsumerRecord<?, ?> record : records)

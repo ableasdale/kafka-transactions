@@ -55,7 +55,7 @@ docker-compose exec broker1 kafka-run-class kafka.tools.GetOffsetShell --bootstr
 ## Dump Log Data
 
 ```bash
-docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction2-topic-0/00000000000000000000.log
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
 ```
 
 You will see:
@@ -112,3 +112,109 @@ baseOffset: 0 lastOffset: 4 count: 5 baseSequence: 0 lastSequence: 4 producerId:
 | offset: 3 CreateTime: 1681907911396 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 851138814
 | offset: 4 CreateTime: 1681907911396 keySize: 1 valueSize: 9 sequence: 4 headerKeys: [] key: 4 payload: 481200393
 ```
+
+## What if we roll back our transaction?
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681911715748 size: 78 magic: 2 compresscodec: none crc: 3059842912 isvalid: true
+| offset: 0 CreateTime: 1681911715748 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 0
+```
+
+## What if we then start a new (uncommitted) transaction after our aborted transaction?
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681911715748 size: 78 magic: 2 compresscodec: none crc: 3059842912 isvalid: true
+| offset: 0 CreateTime: 1681911715748 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 0
+baseOffset: 1 lastOffset: 5 count: 5 baseSequence: 0 lastSequence: 4 producerId: 0 producerEpoch: 1 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 78 CreateTime: 1681911840210 size: 146 magic: 2 compresscodec: none crc: 879601693 isvalid: true
+| offset: 1 CreateTime: 1681911840194 keySize: 1 valueSize: 9 sequence: 0 headerKeys: [] key: 0 payload: 542579346
+| offset: 2 CreateTime: 1681911840209 keySize: 1 valueSize: 9 sequence: 1 headerKeys: [] key: 1 payload: 571699968
+| offset: 3 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 2 headerKeys: [] key: 2 payload: 180311433
+| offset: 4 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 270434362
+| offset: 5 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 4 headerKeys: [] key: 4 payload: 708795996
+```
+
+## What if we abort that too?
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681911715748 size: 78 magic: 2 compresscodec: none crc: 3059842912 isvalid: true
+| offset: 0 CreateTime: 1681911715748 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 0
+baseOffset: 1 lastOffset: 5 count: 5 baseSequence: 0 lastSequence: 4 producerId: 0 producerEpoch: 1 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 78 CreateTime: 1681911840210 size: 146 magic: 2 compresscodec: none crc: 879601693 isvalid: true
+| offset: 1 CreateTime: 1681911840194 keySize: 1 valueSize: 9 sequence: 0 headerKeys: [] key: 0 payload: 542579346
+| offset: 2 CreateTime: 1681911840209 keySize: 1 valueSize: 9 sequence: 1 headerKeys: [] key: 1 payload: 571699968
+| offset: 3 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 2 headerKeys: [] key: 2 payload: 180311433
+| offset: 4 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 270434362
+| offset: 5 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 4 headerKeys: [] key: 4 payload: 708795996
+baseOffset: 6 lastOffset: 6 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 2 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 224 CreateTime: 1681911873528 size: 78 magic: 2 compresscodec: none crc: 2549939742 isvalid: true
+| offset: 6 CreateTime: 1681911873528 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 0
+```
+
+## And finally, what if we now properly commit?
+
+```bash
+docker-compose exec broker1 kafka-run-class kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Dumping /var/lib/kafka/data/transaction-topic-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1681911715748 size: 78 magic: 2 compresscodec: none crc: 3059842912 isvalid: true
+| offset: 0 CreateTime: 1681911715748 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 0
+baseOffset: 1 lastOffset: 5 count: 5 baseSequence: 0 lastSequence: 4 producerId: 0 producerEpoch: 1 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 78 CreateTime: 1681911840210 size: 146 magic: 2 compresscodec: none crc: 879601693 isvalid: true
+| offset: 1 CreateTime: 1681911840194 keySize: 1 valueSize: 9 sequence: 0 headerKeys: [] key: 0 payload: 542579346
+| offset: 2 CreateTime: 1681911840209 keySize: 1 valueSize: 9 sequence: 1 headerKeys: [] key: 1 payload: 571699968
+| offset: 3 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 2 headerKeys: [] key: 2 payload: 180311433
+| offset: 4 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 270434362
+| offset: 5 CreateTime: 1681911840210 keySize: 1 valueSize: 9 sequence: 4 headerKeys: [] key: 4 payload: 708795996
+baseOffset: 6 lastOffset: 6 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 2 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 224 CreateTime: 1681911873528 size: 78 magic: 2 compresscodec: none crc: 2549939742 isvalid: true
+| offset: 6 CreateTime: 1681911873528 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: ABORT coordinatorEpoch: 0
+baseOffset: 7 lastOffset: 11 count: 5 baseSequence: 0 lastSequence: 4 producerId: 1 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 302 CreateTime: 1681911996881 size: 146 magic: 2 compresscodec: none crc: 62164632 isvalid: true
+| offset: 7 CreateTime: 1681911996865 keySize: 1 valueSize: 9 sequence: 0 headerKeys: [] key: 0 payload: 408086965
+| offset: 8 CreateTime: 1681911996879 keySize: 1 valueSize: 9 sequence: 1 headerKeys: [] key: 1 payload: 923164477
+| offset: 9 CreateTime: 1681911996880 keySize: 1 valueSize: 9 sequence: 2 headerKeys: [] key: 2 payload: 227059315
+| offset: 10 CreateTime: 1681911996880 keySize: 1 valueSize: 9 sequence: 3 headerKeys: [] key: 3 payload: 425113926
+| offset: 11 CreateTime: 1681911996881 keySize: 1 valueSize: 9 sequence: 4 headerKeys: [] key: 4 payload: 703534748
+baseOffset: 12 lastOffset: 12 count: 1 baseSequence: -1 lastSequence: -1 producerId: 1 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 448 CreateTime: 1681912004447 size: 78 magic: 2 compresscodec: none crc: 573633395 isvalid: true
+| offset: 12 CreateTime: 1681912004447 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: COMMIT coordinatorEpoch: 0
+```
+
+So if the transaction is aborted before the `ProducerConfig.TRANSACTION_TIMEOUT_CONFIG` threshold is breached (I think this is right?), the offsets can be removed and will not be readable (this is based on a single test).
+
+After a certain period has elapsed, the offsets are "claimed" and will still be part of the log - even though the transaction was aborted. 
+
+More testing is needed to confirm the behaviour here.
+
+## Using the `ConsumerReadCommitted` class
+
+In this scenario, the Consumer is configured with `auto.offset.reset` set to `earliest` and with `isolation.level` set to `read_committed`.
+
+As you may expect, we can only read 5 messages back from the topic - despite the fact that the topic has earlier offsets from the aborted transactions: 
+
+```bash
+14:48:59.145 [main] INFO  ConsumerReadCommitted : Partition: 0 Offset: 7 Value: 408086965 Thread Id: 1
+14:48:59.147 [main] INFO  ConsumerReadCommitted : Partition: 0 Offset: 8 Value: 923164477 Thread Id: 1
+14:48:59.147 [main] INFO  ConsumerReadCommitted : Partition: 0 Offset: 9 Value: 227059315 Thread Id: 1
+14:48:59.147 [main] INFO  ConsumerReadCommitted : Partition: 0 Offset: 10 Value: 425113926 Thread Id: 1
+14:48:59.147 [main] INFO  ConsumerReadCommitted : Partition: 0 Offset: 11 Value: 703534748 Thread Id: 1
+```
+
+## Using the `ConsumerReadUncommitted` class
+
+```bash
+14:52:29.136 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 1 Value: 542579346 Thread Id: 1
+14:52:29.139 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 2 Value: 571699968 Thread Id: 1
+14:52:29.139 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 3 Value: 180311433 Thread Id: 1
+14:52:29.139 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 4 Value: 270434362 Thread Id: 1
+14:52:29.139 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 5 Value: 708795996 Thread Id: 1
+14:52:29.139 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 7 Value: 408086965 Thread Id: 1
+14:52:29.139 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 8 Value: 923164477 Thread Id: 1
+14:52:29.139 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 9 Value: 227059315 Thread Id: 1
+14:52:29.140 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 10 Value: 425113926 Thread Id: 1
+14:52:29.140 [main] INFO  ConsumerReadUncommitted : Partition: 0 Offset: 11 Value: 703534748 Thread Id: 1
+```
+
+TODO - add `--offsets-decoder`

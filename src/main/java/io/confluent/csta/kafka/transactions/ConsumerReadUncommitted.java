@@ -12,7 +12,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 
-public class Consumer {
+public class ConsumerReadUncommitted {
     private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public static void main(String[] args) {
@@ -21,8 +21,8 @@ public class Consumer {
 
         props.put("enable.auto.commit", "false");
         props.put("auto.offset.reset", "earliest");
-        props.put("isolation.level","read_committed");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "cg-1");
+        props.put("isolation.level","read_uncommitted");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "cg-2");
 
         try (var consumer = new KafkaConsumer<String, String>(props)) {
             consumer.subscribe(List.of( Config.TxnTopic));
